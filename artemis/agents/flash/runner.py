@@ -83,6 +83,7 @@ from artemis.memory.transcript import PRO_UI_LIST_MARKER, TranscriptLedger, mark
 from artemis.services.llm import (
     RobustChatModelWrapper,
     acomplete,
+    get_auxiliary_llm,
     get_google_llm,
     get_llm,
     invoke_llm_with_timeout_message,
@@ -283,8 +284,15 @@ class FlashRunner:
             return get_llm(self.ctx, name="operator")
         except Exception as e:
             logger.warning(f"Failed to get operator LLM from config, using default: {e}")
-
-            return RobustChatModelWrapper(get_google_llm(model_name="gemini-2.5-flash"), self.ctx)
+            try:
+                return RobustChatModelWrapper(
+                    get_auxiliary_llm(self.ctx, role="operator", temperature=0.0), self.ctx
+                )
+            except Exception as inner:
+                logger.warning(f"Auxiliary operator model unavailable too: {inner}")
+                return RobustChatModelWrapper(
+                    get_google_llm(model_name="gemini-2.5-flash"), self.ctx
+                )
 
     def _render_system_prompt(self, tools_declaration: list) -> str:
         """Renders the system prompt from the flash_runner.md template.

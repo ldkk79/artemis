@@ -108,6 +108,11 @@ live_screenshot*.png
 *.pem
 *.key
 
+# Local Configuration Overrides
+# Machine-specific provider/model overrides layered on top of config/artemis.jsonc
+# (selected at runtime via ARTEMIS_ARTEMIS_JSONC).
+config/artemis.local.jsonc
+
 # OS Artifacts
 .DS_Store
 .DS_Store?

@@ -31,6 +31,7 @@ from artemis.clients.screen_client_factory import (
 )
 from artemis.config import (
     CheckerConfig,
+    load_agent_config,
     run_tuning_for_profile,
     settings,
 )
@@ -349,6 +350,34 @@ class Agent(AgentBase):
                 f"was resolved as '{task.status}': {exc}",
                 exc_info=True,
             )
+        await self._return_to_launcher(task=task, context=context)
+
+    async def _return_to_launcher(self, task: Task, context: ArtemisContext) -> None:
+        """Reset the device to its launcher once the task reaches a terminal state.
+
+        Runs inside the run's ``finally`` block while the device is still
+        connected, so the next run starts from a known screen. Best-effort: a
+        failure here never changes the task outcome.
+        """
+        if str(getattr(task, "status", "")) == "cancelled":
+            # An operator stopped this run on purpose; leave the screen as it is.
+            return
+        try:
+            if not load_agent_config().execution.return_home_after_task:
+                return
+        except Exception as exc:
+            logger.debug(f"[{task.get_name()}] return-home setting unavailable: {exc}")
+            return
+        try:
+            from artemis.drivers.factory import get_driver
+
+            driver = get_driver(context)
+            if await driver.press_key("home"):
+                logger.info(f"[{task.get_name()}] Returned the device to the launcher.")
+            else:
+                logger.warning(f"[{task.get_name()}] The launcher key press was rejected.")
+        except Exception as exc:
+            logger.warning(f"[{task.get_name()}] Could not return to the launcher: {exc}")
 
     def _get_graph_state(self, task: Task):
         return State.initial(task.request.goal)

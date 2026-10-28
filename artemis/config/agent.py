@@ -854,6 +854,19 @@ class ProProfileConfig(BaseModel):
     model_config = {"extra": "allow"}
 
 
+class ExecutionConfig(BaseModel):
+    """Post-task device handling (``agent.execution``)."""
+
+    return_home_after_task: bool = Field(
+        default=True,
+        description=(
+            "Press HOME once the task reaches a terminal state so the next run"
+            " starts from the launcher. Cancelled tasks are left where they are,"
+            " so an operator who stops a run can still inspect the screen."
+        ),
+    )
+
+
 class AgentGlobalConfig(BaseModel):
     """Global configuration parsed from artemis.jsonc / agent_config.json."""
 
@@ -907,6 +920,10 @@ class AgentGlobalConfig(BaseModel):
     memory: MemoryConfig = Field(
         default_factory=MemoryConfig,
         description="Unified step-memory runtime and transcript scrub options.",
+    )
+    execution: ExecutionConfig = Field(
+        default_factory=ExecutionConfig,
+        description="Post-task device handling options.",
     )
 
     model_config = {"extra": "allow"}

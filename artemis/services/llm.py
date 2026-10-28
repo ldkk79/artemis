@@ -893,6 +893,60 @@ def get_google_llm(
     return ModelFactory.create_model(ep)
 
 
+def resolve_auxiliary_endpoint(
+    ctx: ArtemisContext | None = None,
+    *,
+    role: str = "summarizer",
+    model_name: str | None = None,
+    is_utils: bool = False,
+    use_fallback: bool = False,
+    temperature: float = 0.0,
+) -> ModelEndpoint:
+    """Resolve the endpoint for a background/auxiliary model from the LLM config.
+
+    Background helpers (the Flash step summarizer, the history chunker) used to
+    build a Gemini client directly, which silently broke every non-Google
+    deployment. The provider now comes from the configured ``role`` node, while
+    an explicit ``model_name`` only overrides the model identifier.
+    """
+    llm_cfg = getattr(ctx, "llm_config", None) if ctx is not None else None
+    if llm_cfg is None:
+        llm_cfg = get_default_llm_config()
+    cfg = llm_cfg.get_utils(role) if is_utils else llm_cfg.get_agent(role)
+    if use_fallback:
+        fallback = getattr(cfg, "fallback", None)
+        if fallback is None:
+            raise ValueError(f"LLM configuration for '{role}' has no fallback")
+        cfg = fallback
+    return ModelEndpoint(
+        provider=ModelProvider.from_string(getattr(cfg, "provider", "google")),
+        model_name=str(model_name or getattr(cfg, "model", "") or "gemini-2.5-flash"),
+        temperature=temperature,
+        timeout_seconds=float(getattr(cfg, "timeout", None) or 60.0),
+    )
+
+
+def get_auxiliary_llm(
+    ctx: ArtemisContext | None = None,
+    *,
+    role: str = "summarizer",
+    model_name: str | None = None,
+    is_utils: bool = False,
+    use_fallback: bool = False,
+    temperature: float = 0.0,
+) -> BaseChatModel:
+    """Instantiate a background/auxiliary chat model that honors the configured provider."""
+    endpoint = resolve_auxiliary_endpoint(
+        ctx,
+        role=role,
+        model_name=model_name,
+        is_utils=is_utils,
+        use_fallback=use_fallback,
+        temperature=temperature,
+    )
+    return ModelFactory.create_model(endpoint)
+
+
 def _resolve_endpoint(
     ctx: ArtemisContext,
     name: str,

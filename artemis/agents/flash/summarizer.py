@@ -36,7 +36,11 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from artemis.context import ArtemisContext
 from artemis.memory.step_memory import JobKey, StepMemoryService
-from artemis.services.llm import RobustChatModelWrapper, get_google_llm, get_llm
+from artemis.services.llm import (
+    RobustChatModelWrapper,
+    get_auxiliary_llm,
+    get_google_llm,
+)
 from artemis.services.token_meter import record_llm_usage
 from artemis.utils.task_tree import format_actions_clean
 from artemis.utils.visualization import draw_action_overlay_on_image
@@ -161,15 +165,19 @@ class VisualStepSummarizer(StepMemoryService):
             flush_timeout_s=flush_timeout_s,
         )
 
-        # Initialize lightweight VLM: prioritize explicit model_name
+        # Initialize the lightweight VLM. The provider comes from the configured
+        # summarizer node so non-Google deployments work; an explicit model_name
+        # only overrides the model identifier.
         target_model = model_name or "gemini-2.5-flash-lite"
         self._model_name = target_model
         try:
-            if model_name:
-                self._llm = get_google_llm(model_name=target_model, temperature=0.0)
-            else:
-                self._llm = get_llm(ctx, name="summarizer", is_utils=True)
-        except Exception:
+            self._llm = get_auxiliary_llm(
+                ctx, role="summarizer", model_name=model_name, temperature=0.0
+            )
+        except Exception as exc:
+            logger.warning(
+                f"Configured summarizer model unavailable ({exc}); using the Gemini default."
+            )
             self._llm = get_google_llm(model_name=target_model, temperature=0.0)
         try:
             configured = getattr(self._llm, "model", None) or getattr(self._llm, "model_name", None)

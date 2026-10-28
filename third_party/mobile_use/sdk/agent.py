@@ -94,6 +94,7 @@ from third_party.mobile_use.utils.media import (
     remove_images_from_trace_folder,
     remove_steps_json_from_trace_folder,
 )
+from artemis.data_engine.trace_export import write_steps_json_from_data_engine
 
 logger = get_logger(__name__)
 
@@ -919,6 +920,11 @@ class AgentBase:
         logger.info(f"[{task_name}] Compiling trace FROM FOLDER: " + str(temp_trace_path))
         create_gif_from_trace_folder(temp_trace_path)
         create_steps_json_from_trace_folder(temp_trace_path)
+        # The legacy compiler above only understands timestamp-named step
+        # files, which the SQLite DataEngine no longer writes. Rebuild the
+        # manifest from the recorded session steps so `artemis trace view`
+        # has real content; the legacy result stands when there are none.
+        write_steps_json_from_data_engine(temp_trace_path, context.data_engine)
 
         logger.info(f"[{task_name}] Video created, removing dust...")
         remove_images_from_trace_folder(temp_trace_path)

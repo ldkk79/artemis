@@ -22,6 +22,8 @@ third_party {
     "  - Renamed imports and identifiers to Artemis equivalents.\n"
     "  - Removed code not used by Artemis (platform/cloud APIs, iOS, telemetry, etc.).\n"
     "  - Restructured and extended some code for use by Artemis.\n"
+    "  - Trace finalization rebuilds steps.json from the Artemis DataEngine\n"
+    "    (the upstream compiler only understands legacy timestamp-named files).\n"
     "  - Added Apache-2.0 file headers carrying the upstream copyright.\n"
     "All code derived from mobile-use lives in this directory.\n"
 }

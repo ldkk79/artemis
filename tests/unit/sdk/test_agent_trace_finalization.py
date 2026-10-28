@@ -26,6 +26,7 @@ from third_party.mobile_use.sdk.types.exceptions import AgentError
 async def test_trace_finalization_failure_does_not_escape():
     agent = object.__new__(Agent)
     agent._finalize_tracing = AsyncMock(side_effect=ValueError("bad recording manifest"))
+    agent._return_to_launcher = AsyncMock()
     task = MagicMock(status="completed")
     task.get_name.return_value = "successful-task"
     context = MagicMock()
@@ -33,6 +34,7 @@ async def test_trace_finalization_failure_does_not_escape():
     await agent._finalize_tracing_safely(task=task, context=context)
 
     agent._finalize_tracing.assert_awaited_once_with(task=task, context=context)
+    agent._return_to_launcher.assert_awaited_once_with(task=task, context=context)
 
 
 @pytest.mark.asyncio

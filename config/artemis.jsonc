@@ -263,6 +263,13 @@
         "max_tokens": 12000
       }
     },
+    // 🏠 Post-task device handling: where the phone is left once a run ends.
+    "execution": {
+      // Press HOME after the task reaches a terminal state, so the next run
+      // starts from the launcher. Cancelled tasks are left where they are, so
+      // an operator who stops a run can still inspect the screen.
+      "return_home_after_task": true
+    },
     // 🎬 Screen Recording & Video Analyzer Configuration
     "video_analyzer": {
       "enabled": true, // Whether continuous screen recording via scrcpy is active (default: auto-detected)
